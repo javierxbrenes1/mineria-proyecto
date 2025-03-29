@@ -15,5 +15,41 @@
 
 #Hay mas casos de violencia en zonas rurales que en zonas urbanas?
 
+#Cuales son los circuitos que mas tardan en cerrar casos y cuales son los mas eficientes?
+
 ##CORRELACION
 #Existe alguna CORRELACION ENTRE LOS TESTIMONIOS CLAVE contra los casos cerrados
+
+install.packages("readxl")
+library(readxl)
+library(dplyr)
+
+archivo <- file.choose() #Seleccionar archivo xls
+
+dataViolenciaDomestica <- read_excel("ARCHIVO VIOLENCIA DOMESTICA.xls")
+
+head(dataViolenciaDomestica)
+
+
+#Exite alguna tendencia o mes donde los reportes de violencia se disparen
+#Validando expedientes ingresados durante ese mes
+dataViolenciaDomestica %>% 
+  group_by(Anno, Mes, NombreCircuito) %>% 
+  summarise(Entrados) %>% 
+  arrange(desc(Entrados))
+
+#Validando expedientes activos durante el mes
+dataViolenciaDomestica %>% 
+  group_by(Anno, Mes, NombreCircuito) %>% 
+  summarise(CirculanteInicial) %>% 
+  arrange(desc(CirculanteInicial))
+
+
+
+
+
+
+
+
+
+
