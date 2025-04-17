@@ -6,7 +6,7 @@ output: html_document
 ### Colegio Universitario de Cartago
 ### Profesor: Osvaldo Gonzalez Chaves
 ### Javier Brenes Redondo
-### Diego
+### Diego Montero Vargas
 ### Primer Cuatrimestre, 2025
 
 ---
@@ -23,6 +23,10 @@ El archivo seleccionado, "ARCHIVO_VIOLENCIA_DOMESTICA.tsv", contiene registros d
 
 ```{r packages, echo=FALSE, include = FALSE}
 source("utilitarios.R")
+datos_violencia <- cargar_datos_violencia()
+variables_numericas <- datos_violencia %>%
+  select(where(is.numeric), -Anno, -Mes)
+
 ```
 ```{r diccionario, echo=FALSE}
 
@@ -40,11 +44,9 @@ kable(data)
 Para aquellos valores numericos del dataset se encuentran las siguientes estadisticas
 
 ```{r stats, echo = FALSE}
-datos_violencia <- cargar_datos_violencia()
 
-solo_enteros <- datos_violencia %>% 
-  select(where(is.numeric), -Anno, -Mes) %>%
-  summarise(across(everything(), 
+stats_basicas <- variables_numericas %>%
+  summarise(across(everything(),
     list(
       Media = ~mean(., na.rm = TRUE),
       Mediana = ~median(., na.rm = TRUE),
@@ -63,23 +65,65 @@ solo_enteros <- datos_violencia %>%
   )
 
 # Display the results
-kable(solo_enteros)
+kable(stats_basicas)
 ```
 
 ## Correlaciones
+
+Primero, analicemos la presencia de valores NA en nuestras variables numéricas:
+
+```{r na_analysis, echo=FALSE}
+# Contar NAs por variable
+na_counts <- colSums(is.na(variables_numericas))
+na_percentages <- round(100 * na_counts / nrow(variables_numericas), 2)
+
+na_summary <- data.frame(
+  Variable = names(na_counts),
+  `Cantidad de NAs` = na_counts,
+  `Porcentaje de NAs` = na_percentages
+)
+
+kable(na_summary, 
+      caption = "Análisis de Valores Faltantes (NA)")
+```
+
+Para analizar las relaciones entre las variables numéricas del conjunto de datos, se presenta la siguiente matriz de correlaciones:
+
+```{r correlations, echo=FALSE, fig.width=10, fig.height=8}
+# Calcular la matriz de correlación
+matriz_correlacion <- cor(variables_numericas)
+
+# Crear una tabla con las correlaciones
+kable(round(matriz_correlacion, 2), 
+      caption = "Matriz de Correlación")
+
+# Visualizar la matriz de correlación con un heatmap
+corrplot(matriz_correlacion,
+         method = "color",
+         type = "upper",
+         order = "original",
+         addCoef.col = "black",
+         tl.col = "black",
+         tl.srt = 45,
+         number.cex = 0.7,
+         tl.cex = 0.7,
+         col = colorRampPalette(c("#6D9EC1", "white", "#E46726"))(200),
+         title = "Mapa de Calor - Correlaciones",
+         mar = c(0,0,2,0))
+```
+
+Interpretación de las correlaciones:
+
+- Los valores cercanos a 1 (naranja oscuro) indican una correlación positiva fuerte
+- Los valores cercanos a -1 (azul oscuro) indican una correlación negativa fuerte
+- Los valores cercanos a 0 (blanco) indican poca o ninguna correlación
+- El tamaño y color de los círculos representan la fuerza y dirección de la correlación
 
 ## Valores Atipicos
 
 Para visualizar la distribución y detectar valores atípicos en las variables numéricas, se presentan los siguientes diagramas de caja:
 
 ```{r boxplots, echo=FALSE, fig.width=12, fig.height=8}
-
-datos_violencia <- cargar_datos_violencia()
-
-# Seleccionar solo las variables numéricas de interés
-variables_numericas <- datos_violencia %>%
-  select(where(is.numeric), -Anno, -Mes)
-
 # Convertir a formato largo para ggplot
 datos_largo <- variables_numericas %>%
   pivot_longer(cols = everything(),

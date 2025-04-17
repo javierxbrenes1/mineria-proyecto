@@ -14,28 +14,8 @@ calculate_mode <- function(x) {
   uniqx[which.max(tabulate(match(x, uniqx)))]
 }
 
-# Select only numeric columns and calculate statistics
-solo_enteros <- datos_violencia %>% 
-  select(where(is.numeric)) %>%
-  summarise(across(everything(), 
-    list(
-      mean = ~mean(., na.rm = TRUE),
-      median = ~median(., na.rm = TRUE),
-      mode = ~calculate_mode(.)
-    )
-  )) %>%
-  pivot_longer(
-    cols = everything(),
-    names_to = c("variable", "statistic"),
-    names_pattern = "(.*)_(.*)",
-    values_to = "value"
-  ) %>%
-  pivot_wider(
-    names_from = statistic,
-    values_from = value
-  )
+rr <- datos_violencia %>% 
+  select(where(is.numeric), -Anno, -Mes) 
+summary(rr)
 
-# Display the results
-print(solo_enteros, n = Inf)
-
-
+rr %>% filter(is.na(CirculanteFinalLegajos))

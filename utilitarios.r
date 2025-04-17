@@ -5,6 +5,7 @@ library(stringi)
 library(ggplot2)
 library(tidyr) 
 library(knitr)
+library(corrplot)
 
 
 limpiar_texto <- function(texto) {
