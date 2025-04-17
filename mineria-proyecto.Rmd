@@ -1,0 +1,73 @@
+---
+title: Proyecto final - Lenguajes Mineria de datos
+output: html_document
+---
+
+### Colegio Universitario de Cartago
+### Profesor: Osvaldo Gonzalez Chaves
+### Javier Brenes Redondo
+### Diego
+### Primer Cuatrimestre, 2025
+
+---
+
+# Contenido {.tabset}
+
+## Introducción
+
+Este proyecto se centra en la aplicación de las técnicas aprendidas en este curso para analizar el conjunto de datos "ARCHIVO_VIOLENCIA_DOMESTICA.tsv". Utilizando bibliotecas de R, el objetivo principal es extraer información relevante y responder a las preguntas de investigación planteadas, además de generar estadísticas descriptivas que permitan comprender mejor los datos.
+
+## Set de datos
+
+El archivo seleccionado, "ARCHIVO_VIOLENCIA_DOMESTICA.tsv", contiene registros de denuncias por violencia doméstica a nivel nacional desde 2015 hasta 2025, obtenidos del portal del Organismo de Investigación Judicial. A continuación, se explican las variables presentes en este conjunto de datos.
+
+```{r packages, echo=FALSE, include = FALSE}
+source("utilitarios.R")
+```
+```{r diccionario, echo=FALSE}
+
+data <- data.frame(
+  Variable=c('Anno', 'Mes', 'NombreMes', 'NombreMateria', 'NombreCircuito', 'NombreDespacho', 'NombreTipoDespacho', 'CirculanteInicial', 'CirculanteInicialLeg', 'Entrados', 'TestimoniosPiezas', 'Legajos', 'Reentrados', 'TErminadosXIncompetencia', 'AbandonadosOInactivos', 'Terminasdos', 'CirculanteFinal', 'CirculanteFinalLegajos' ),
+  Tipo=c('int', 'int', 'texto', 'texto', 'texto', 'texto', 'texto', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int' ),
+  Descripcion=c('Año de la estadistica', 'Mes de la estadistica', 'Descripción del mes', 'Nombre de la materia', 'Nombre del circuito', '	Descripción del despacho', 'Descripción del tipo de despacho', 'Cantidad de expedientes activos al iniciar el mes', 'Subconjunto del apartado anterior, en donde el tipos de caso es "Legajo", válido para despachos laborales y contenciosos.', 'Cantidad de expedientes entrados como nuevos durante el mes.', 'Subconjunto de los entrados, en donde el expediente sea un testimonio de piezas.', '	Subconjunto de los entrados, en donde el expediente sea un "legajo".', 'Cantidad de expedientes reentrados durante el mes.', 'Subconjunto de los terminados, en donde el motivo de término sea "Por Incompetencia"', 'Subconjunto de los terminados, en donde el motivo de término sea "Abandonado ó Inactivo"', 'Cantidad de expedientes finalizados durante el mes.', 'Cantidad de expedientes activos al finalizar el mes.', 'Subconjunto del apartado anterior, en donde el tipos de caso es "Legajo", válido para despachos laborales y contenciosos.' )
+)
+
+kable(data)
+```
+
+## Estadísticas Básicas
+
+Para aquellos valores numericos del dataset se encuentran las siguientes estadisticas
+
+```{r stats, echo = FALSE}
+datos_violencia <- cargar_datos_violencia()
+
+solo_enteros <- datos_violencia %>% 
+  select(where(is.numeric), -Anno, -Mes) %>%
+  summarise(across(everything(), 
+    list(
+      Media = ~mean(., na.rm = TRUE),
+      Mediana = ~median(., na.rm = TRUE),
+      Moda = ~calculate_mode(.)
+    )
+  )) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = c("variable", "statistic"),
+    names_pattern = "(.*)_(.*)",
+    values_to = "value"
+  ) %>%
+  pivot_wider(
+    names_from = statistic,
+    values_from = value
+  )
+
+# Display the results
+kable(solo_enteros)
+```
+
+## Correlaciones
+
+## Valores Atipicos
+
+## Hipotesis

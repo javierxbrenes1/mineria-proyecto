@@ -1,42 +1,21 @@
-# circuitos_provincias <- data.frame(
-#   circuito = c(
-#     "I Circuito Judicial de San José",
-#     "II Circuito Judicial de San José",
-#     "III Circuito Judicial de San José",
-#     "I Circuito Judicial de la Zona Sur",
-#     "II Circuito Judicial de la Zona Sur",
-#     "I Circuito Judicial de Alajuela",
-#     "II Circuito Judicial de Alajuela",
-#     "III Circuito Judicial de Alajuela",
-#     "Circuito Judicial de Cartago",
-#     "Circuito Judicial de Heredia",
-#     "I Circuito Judicial de Guanacaste",
-#     "II Circuito Judicial de Guanacaste",
-#     "Circuito Judicial de Puntarenas",
-#     "I Circuito Judicial de la Zona Atlántica",
-#     "II Circuito Judicial de la Zona Atlántica"
-#   ),
-#   provincia = c(
-#     "San Jose",
-#     "San Jose",
-#     "San Jose",
-#     "Puntarenas",
-#     "Puntarenas",
-#     "Alajuela",
-#     "Alajuela",
-#     "Alajuela",
-#     "Cartago",
-#     "Heredia",
-#     "Guanacaste",
-#     "Guanacaste",
-#     "Puntarenas",
-#     "Limon",       # Zona Atlántica is Limón
-#     "Limon"        # Zona Atlántica is Limón
-#   )
-# )
+# Load required libraries
+library(dplyr)
+library(stringr)
+library(stringi)
+library(ggplot2)
+library(tidyr) 
+library(knitr)
+
+limpiar_texto <- function(texto) {
+  texto <- tolower(texto)
+  texto <- stri_trans_general(texto, "Latin-ASCII")
+  texto <- str_trim(texto)
+  return(texto)
+}
+
 
 circuitos_provincias <- data.frame(
-    circuito = limpiar_texto(c(
+    circuito = c(
         'San Jose',
         'Heredia',
         'Alajuela',
@@ -50,7 +29,7 @@ circuitos_provincias <- data.frame(
         'Turrialba',
         'Golfito'
         
-    )),
+    ),
     provincia = c(
         'San Jose',
         'Heredia',
@@ -87,12 +66,6 @@ cargar_datos_violencia <- function(ruta = "data_sources/ARCHIVO_VIOLENCIA_DOMEST
     return(datos)
 }
 
-limpiar_texto <- function(texto) {
-  texto <- tolower(texto)
-  texto <- stri_trans_general(texto, "Latin-ASCII")
-  texto <- str_trim(texto)
-  return(texto)
-}
 
 clasificar_circuito <- function(circuitos) {
     resultados <- rep(NA_character_, length(circuitos))
@@ -102,4 +75,9 @@ clasificar_circuito <- function(circuitos) {
         resultados[matches] <- circuitos_provincias$provincia[i]
     }
     return(resultados)
+}
+
+calculate_mode <- function(x) {
+  uniqx <- unique(na.omit(x))
+  uniqx[which.max(tabulate(match(x, uniqx)))]
 }
