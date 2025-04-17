@@ -70,4 +70,44 @@ kable(solo_enteros)
 
 ## Valores Atipicos
 
+Para visualizar la distribución y detectar valores atípicos en las variables numéricas, se presentan los siguientes diagramas de caja:
+
+```{r boxplots, echo=FALSE, fig.width=12, fig.height=8}
+
+datos_violencia <- cargar_datos_violencia()
+
+# Seleccionar solo las variables numéricas de interés
+variables_numericas <- datos_violencia %>%
+  select(where(is.numeric), -Anno, -Mes)
+
+# Convertir a formato largo para ggplot
+datos_largo <- variables_numericas %>%
+  pivot_longer(cols = everything(),
+               names_to = "Variable",
+               values_to = "Valor")
+
+# Crear los boxplots
+ggplot(datos_largo, aes(x = 1, y = Valor)) +
+  geom_boxplot(fill = "lightblue", outlier.colour = "red", outlier.size = 2) +
+  facet_wrap(~Variable, scales = "free_y", ncol = 4) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    panel.grid.major.x = element_blank(),
+    strip.text = element_text(size = 8, face = "bold"),
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  labs(
+    x = "",
+    y = "Valor",
+    title = "Diagramas de Caja para Variables Numéricas"
+  )
+```
+
+Los diagramas de caja nos permiten observar:
+- La distribución de los datos para cada variable
+- La presencia de valores atípicos (puntos rojos)
+- La mediana y los cuartiles de cada variable
+
 ## Hipotesis

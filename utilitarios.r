@@ -6,6 +6,7 @@ library(ggplot2)
 library(tidyr) 
 library(knitr)
 
+
 limpiar_texto <- function(texto) {
   texto <- tolower(texto)
   texto <- stri_trans_general(texto, "Latin-ASCII")
