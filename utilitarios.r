@@ -4,9 +4,13 @@ library(stringr)
 library(stringi)
 library(ggplot2)
 library(tidyr) 
-library(knitr)
 library(corrplot)
-
+library(knitr)
+library(kableExtra)
+library(factoextra)
+library(NbClust)
+library(caret)
+library(forecast)
 
 limpiar_texto <- function(texto) {
   texto <- tolower(texto)
@@ -29,7 +33,8 @@ circuitos_provincias <- data.frame(
         'Sur',
         'ATENAS',
         'Turrialba',
-        'Golfito'
+        'Golfito',
+        "PEREZ ZELEDON"
         
     ),
     provincia = c(
@@ -44,7 +49,8 @@ circuitos_provincias <- data.frame(
         'Puntarenas',
         'Alajuela',
         'Cartago',
-        'Puntarenas'
+        'Puntarenas',
+        "San Jose"
     )
 )
 

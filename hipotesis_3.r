@@ -61,7 +61,7 @@ dv_eficiencia_long <- dv_eficiencia %>%
     values_to = "Porcentaje"
   )
 
-  dv_eficiencia_long
+dv_eficiencia %>% filter(str_detect(limpiar_texto(NombreCircuito), "santa cruz")) %>% select(NombreCircuito)
 
 ggplot(dv_eficiencia_long, aes(x = reorder(NombreCircuito, Porcentaje), y = Porcentaje, fill = Tipo_Eficiencia)) +
   geom_bar(stat = "identity", position = "dodge") +
