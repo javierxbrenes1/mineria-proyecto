@@ -11,6 +11,8 @@ library(factoextra)
 library(NbClust)
 library(caret)
 library(forecast)
+library(lubridate)
+
 
 limpiar_texto <- function(texto) {
   texto <- tolower(texto)
@@ -89,3 +91,6 @@ calculate_mode <- function(x) {
   uniqx <- unique(na.omit(x))
   uniqx[which.max(tabulate(match(x, uniqx)))]
 }
+
+meses <- c("Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
+                  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre")
