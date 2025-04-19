@@ -1,0 +1,709 @@
+---
+title: "Proyecto final - Lenguajes Minería de Datos"
+output: pdf_document
+---
+
+### Colegio Universitario de Cartago
+### Profesor: Osvaldo Gonzalez Chaves
+### Javier Brenes Redondo
+### Diego Montero Vargas
+### Primer Cuatrimestre, 2025
+
+---
+
+# Contenido {.tabset}
+
+## Introducción
+
+Este proyecto se centra en la aplicación de las técnicas aprendidas en este curso para analizar el conjunto de datos "ARCHIVO_VIOLENCIA_DOMESTICA.tsv". Utilizando bibliotecas de R, el objetivo principal es extraer información relevante y responder a las preguntas de investigación planteadas, además de generar estadísticas descriptivas que permitan comprender mejor los datos.
+
+## Conjunto de datos
+
+El archivo seleccionado, "ARCHIVO_VIOLENCIA_DOMESTICA.tsv", contiene registros de denuncias por violencia doméstica a nivel nacional desde 2015 hasta 2025, obtenidos del portal del Organismo de Investigación Judicial. A continuación, se explican las variables presentes en este conjunto de datos.
+
+```{r packages, echo=FALSE, include = FALSE}
+source("utilitarios.R")
+datos_violencia <- cargar_datos_violencia()
+variables_numericas <- datos_violencia %>%
+  select(where(is.numeric), -Anno, -Mes, -CirculanteInicialLeg, -Legajos, -AbandonadosOInactivos, -CirculanteFinalLegajos)
+
+```
+```{r diccionario, echo=FALSE}
+
+data <- data.frame(
+  Variable=c('Anno', 'Mes', 'NombreMes', 'NombreMateria', 'NombreCircuito', 'NombreDespacho', 'NombreTipoDespacho', 'CirculanteInicial', 'CirculanteInicialLeg', 'Entrados', 'TestimoniosPiezas', 'Legajos', 'Reentrados', 'TerminadosXImcompetencia', 'AbandonadosOInactivos', 'Terminasdos', 'CirculanteFinal', 'CirculanteFinalLegajos' ),
+  Tipo=c('int', 'int', 'texto', 'texto', 'texto', 'texto', 'texto', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int', 'int' ),
+  Descripcion=c('Año de la estadística', 'Mes de la estadística', 'Descripción del mes', 'Nombre de la materia', 'Nombre del circuito', '	Descripción del despacho', 'Descripción del tipo de despacho', 'Cantidad de expedientes activos al iniciar el mes', 'Subconjunto del apartado anterior, en donde el tipos de caso es "Legajo", válido para despachos laborales y contenciosos.', 'Cantidad de expedientes entrados como nuevos durante el mes.', 'Subconjunto de los entrados, en donde el expediente sea un testimonio de piezas.', '	Subconjunto de los entrados, en donde el expediente sea un "legajo".', 'Cantidad de expedientes reentrados durante el mes.', 'Subconjunto de los terminados, en donde el motivo de término sea "Por Incompetencia"', 'Subconjunto de los terminados, en donde el motivo de término sea "Abandonado ó Inactivo"', 'Cantidad de expedientes finalizados durante el mes.', 'Cantidad de expedientes activos al finalizar el mes.', 'Subconjunto del apartado anterior, en donde el tipos de caso es "Legajo", válido para despachos laborales y contenciosos.' )
+)
+
+kable(data) %>% kable_styling() %>%
+  column_spec(3, width = "5cm")
+```
+
+## Estadísticas Básicas
+
+Para aquellos valores numéricos del dataset se encuentran las siguientes estadísticas
+
+```{r stats, echo = FALSE}
+
+var_nums <- datos_violencia %>%
+  select(where(is.numeric), -Anno, -Mes)
+
+stats_basicas <- var_nums %>%
+  summarise(across(everything(),
+    list(
+      Media = ~mean(., na.rm = TRUE),
+      Mediana = ~median(., na.rm = TRUE),
+      Moda = ~calculate_mode(.)
+    )
+  )) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = c("variable", "statistic"),
+    names_pattern = "(.*)_(.*)",
+    values_to = "value"
+  ) %>%
+  pivot_wider(
+    names_from = statistic,
+    values_from = value
+  )
+
+# Display the results
+kable(stats_basicas) %>% kable_styling() %>%
+  column_spec(1, width = "5cm")
+```
+
+## Correlaciones
+
+Para analizar las relaciones entre las variables numéricas del conjunto de datos, se presenta la siguiente matriz de correlaciones:
+
+```{r , echo=FALSE, fig.width=10, fig.height=8}
+# Calcular la matriz de correlación
+matriz_correlacion <- cor(variables_numericas)
+
+# Crear una tabla con las correlaciones
+mat_corr <- matriz_correlacion
+colnames(mat_corr) <- c('CI', 'E', 'TP', 'R', 'TxI', 'T', 'CF')
+rownames(mat_corr) <- c('CI', 'E', 'TP', 'R', 'TxI', 'T', 'CF')
+
+kable(mat_corr)
+```
+Diccionario: 
+
+- CI: CirculanteInicial
+- E: Entrados
+- TP: TestimoniosPiezas
+- R: Reentrados
+- TxI: TerminadosXImcompetencia
+- T: Terminasdos
+- CF: CirculanteFinal
+
+```{r , echo=FALSE, fig.width=10, fig.height=8}
+# Visualizar la matriz de correlación con un heatmap
+corrplot(matriz_correlacion,
+         method = "color",
+         type = "upper",
+         order = "original",
+         addCoef.col = "black",
+         tl.col = "black",
+         tl.srt = 45,
+         number.cex = 0.7,
+         tl.cex = 0.7,
+         col = colorRampPalette(c("#6D9EC1", "white", "#E46726"))(200),
+         title = "Mapa de Calor - Correlaciones",
+         mar = c(0,0,2,0))
+```
+
+Interpretación de las correlaciones:
+
+- Los valores cercanos a 1 (naranja oscuro) indican una correlación positiva fuerte
+- Los valores cercanos a -1 (azul oscuro) indican una correlación negativa fuerte
+- Los valores cercanos a 0 (blanco) indican poca o ninguna correlación
+- El tamaño y color de los círculos representan la fuerza y dirección de la correlación
+
+Como se observa en el gráfico en su mayoría las variables tienen relación entre ellas de una forma positiva, tienen a crecer juntas.
+
+Nota: Para el cálculo de las correlaciones, se eliminaron las columnas `CirculanteInicialLeg`, `Legajos`, `AbandonadosOInactivos` y `CirculanteFinalLegajos` del conjunto de datos. Estas columnas contenían únicamente el valor 0, lo que significa que no presentaban ninguna variación. Como la variación es fundamental para calcular la correlación (se utiliza en una división), una columna sin variación causaría un error matemático (división por cero). Por esta razón, se optó por remover estas columnas para evitar problemas en el análisis.
+
+## Valores atípicos
+
+Para visualizar la distribución y detectar valores atípicos en las variables numéricas, se presentan los siguientes diagramas de caja:
+
+```{r boxplots, echo=FALSE, fig.width=12, fig.height=8}
+
+var_nums_2 <- datos_violencia %>%
+  select(where(is.numeric), -Anno, -Mes)
+# Convertir a formato largo para ggplot
+datos_largo <- var_nums_2 %>%
+  pivot_longer(cols = everything(),
+               names_to = "Variable",
+               values_to = "Valor")
+
+# Crear los boxplots
+ggplot(datos_largo, aes(x = 1, y = Valor)) +
+  geom_boxplot(fill = "lightblue", outlier.colour = "red", outlier.size = 2) +
+  facet_wrap(~Variable, scales = "free_y", ncol = 4) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    panel.grid.major.x = element_blank(),
+    strip.text = element_text(size = 8, face = "bold"),
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  labs(
+    x = "",
+    y = "Valor",
+    title = "Diagramas de Caja para Variables Numéricas"
+  )
+```
+
+Los diagramas de caja nos permiten observar:
+- La distribución de los datos para cada variable
+- La presencia de valores atípicos (puntos rojos)
+- La mediana y los cuartiles de cada variable
+
+
+## Hipotesis {.tabset}
+
+### Hipótesis 1 
+
+#### Planteamiento
+Distribución Geográfica de la Violencia Doméstica:
+
+#### Pregunta de Investigación: 
+¿Existe una variación significativa en la incidencia de casos de violencia doméstica entre áreas internas del país (San Jose, Heredia, Alajuela, Cartago) y áreas externas del país (Puntarenas, Limon, Guanacaste)?
+
+#### Objetivos:
+Analizar la distribución geográfica de los casos nuevos y terminados de violencia doméstica por circuito judicial.
+Realizar una comparación de la incidencia de casos entre áreas internas del país  y áreas externas.
+
+#### Requerimientos de Datos:
+Depuración y homogeneización del conjunto de datos existente.
+Enriquecimiento del conjunto de datos para permitir la clasificación de los circuitos judiciales por provincia.
+
+
+#### Análisis
+
+Nuestro dataset no incluye una columna de provincia, es por eso que tuvimos que enriquecer el dataset a través de analizar `NombreCircuito` y apartir de este determinar la provincia en la que se encontraba así como clasificar si dicha provincia se encuentra en el interior del país o en el exterior:
+
+```{r, echo=FALSE, include = FALSE}
+datos_violencia_con_provincia <- datos_violencia %>% mutate(Provincia = clasificar_circuito(NombreCircuito))
+
+datos_violencia_con_provincia <- datos_violencia_con_provincia %>% mutate(InteriorPais = ifelse(Provincia %in% c("San Jose", "Alajuela", "Heredia", "Cartago"), 'SI', 'NO'))
+
+datos_violencia_hip_1 <- datos_violencia_con_provincia %>% select(Anno, Mes, NombreCircuito, Entrados, Terminasdos, Provincia, InteriorPais)
+```
+
+```{r, echo=FALSE}
+kable(head(datos_violencia_hip_1, 10))
+
+```
+Nota: Primeros 10 registros del dataset con las nuevas columnas.
+
+---
+
+Iniciemos haciendo un conteo por provincia 
+
+```{r, echo=FALSE, fig.width=12, fig.height=8}
+ggplot(datos_violencia_hip_1, aes(x = Provincia, fill = as.factor(InteriorPais))) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(title = "Conteo de registros de violencia doméstica",
+       x = "Provincia",
+       y = "Número de casos", fill="Interior del país") + 
+  theme(plot.title = element_text(hjust=0.5, size=20, face="bold", margin=margin(b = 15)))
+```
+
+Luego un conteo por zona
+
+```{r, echo=FALSE, fig.width=12, fig.height=8}
+ggplot(datos_violencia_hip_1, aes(x = InteriorPais, fill = as.factor(InteriorPais))) +
+  geom_bar() +
+    labs(title = "Conteo de registros de violencia doméstica por zona",
+       y = "Frecuencia",
+       x = "Numero de casos entrados", 
+       fill="Interior del país" ) + 
+  theme(plot.title = element_text(hjust=0.5, size=20, face="bold", margin=margin(b = 15)))
+```
+
+Si nos basaramos en un conteo de registros, es claro que en el interior del país hay mas casos de violencia domestica, pero esto no seria una interpretacion valida, ya que en el interior del país estamos contando mas provincias que en el exterior del país, ademas cabe la posibilidad que en el interior hayan mas circuitos por lo que es normal que hayan mas registros en dataset.
+
+Para poder responder la pregunta que se planteo necesitamos analizar la variable `Entrados` y su distribución por zona.
+
+``` {r, echo=FALSE, fig.width=12, fig.height=8}
+ggplot(datos_violencia_hip_1, aes(x = Entrados, fill = as.factor(InteriorPais))) +
+  geom_bar() +
+    labs(title = "Distribución de casos de violencia doméstica por zona (interior, exterior)",
+       y = "Frecuencia",
+       x = "Numero de casos entrados", fill="Interior del país"  ) +
+  theme(plot.title = element_text(hjust=0.5, size=20, face="bold", margin=margin(b = 15)))
+```
+
+Como se aprecia en el gráfico anterior, en el exterior del país (Guanacaste, Puntarenas, Limón) es donde mas casos entrados de violencia domestica hay en una mayor frecuencia pero en rangos menores, en comparacion  
+al interior del país donde la cantidad de casos entrados en rangos mayores entre 160 y 500 predomina.
+
+Veamos un histograma para ver si existe un crecimiento a lo largo de los años.
+
+``` {r, echo=FALSE, fig.width=12, fig.height=8}
+ggplot(datos_violencia_hip_1, aes(x = Entrados, fill = InteriorPais)) +
+  geom_histogram(position = "dodge", binwidth = 50) +
+ facet_wrap(~Anno) +
+  labs(
+    title = "Distribución de Casos Entrados por Zona y Año",
+    x = "Número de Casos Entrados",
+    y = "Frecuencia",
+    fill = "Interior del País"
+  ) +
+ theme_minimal() +
+  scale_fill_manual(values = c("NO" = "#FF6B6B", "SI" = "#4ECDC4")) + 
+    scale_x_continuous(
+    breaks = seq(0, max(datos_violencia$Entrados), by = 100),  # Shows breaks every 100
+    labels = scales::comma  # Formats numbers with commas for readability
+  ) +  theme(plot.title = element_text(hjust=0.5, size=20, face="bold", margin=margin(b = 15)))
+```
+
+Si vemos los datos desde un punto de vista historico, se aprecia que internamente es donde mas casos de violencia domestica existen, tambien que año a año los valores incrementan.
+
+Pero si hacemos una suma de todos los casos entrantes a lo largo de los años, agrupado por zona, que obtenemos ?
+
+```{r, echo=FALSE, fig.width=12, fig.height=8}
+resumen <- datos_violencia_hip_1 %>% group_by(InteriorPais) %>% summarise(totalEntrados=sum(Entrados))
+
+total <- sum(resumen$totalEntrados)
+resumen$porcentaje <- resumen$totalEntrados / total * 100
+
+ggplot(resumen, aes(x = "", y = porcentaje, fill = InteriorPais)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_text(aes(label = paste0(round(porcentaje, 1), "%")), 
+            position = position_stack(vjust = 0.5), 
+            size = 4) +
+  coord_flip() +
+  scale_fill_manual(values = c("coral", "turquoise3")) +
+  labs(title = "Distribución por Interior del País",
+       x = "",
+       y = "") +
+  theme_minimal() +
+  theme(axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid = element_blank(),
+        plot.title = element_text(hjust = 0.5, size = 14),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 10))
+
+```
+
+Es posible conocer la totalidad de casos por Provincia entonces ?
+
+``` {r, echo=FALSE, fig.width=12, fig.height=8}
+por_provincia <- datos_violencia_hip_1 %>% group_by(Provincia) %>% summarise(totalEntrados=sum(Entrados))
+
+ggplot(por_provincia, aes(x = reorder(Provincia, -totalEntrados), y = totalEntrados)) +
+  geom_bar(stat = "identity", fill = "turquoise3") +
+  geom_text(aes(label = totalEntrados), vjust = -0.3, size = 3.5) +
+  labs(title = "Total de Entradas por Provincia",
+       x = "Provincia",
+       y = "Total de Entradas") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+#### Conclusión
+
+Podemos definir que la mayoría de los casos de violencia domestica se presentan en el interior del país, donde luego de nuestro análisis San Jose es la provincia con mas casos registrados.
+
+Aunque los datos muestran que en el exterior del país hay en frecuencia mas denuncias, se ve opacado por la cantidad de casos en rangos altos que se da en el interior del país.
+
+### Hipótesis 2
+
+#### Planteamiento
+Temporalidad de la Violencia Doméstica:
+
+#### Pregunta de Investigación: 
+ ¿Se identifican periodos específicos del año con un aumento significativo en la presentación de casos de violencia doméstica?
+
+#### Objetivos:
+Determinar los periodos del año (meses) con mayor incidencia de casos nuevos de violencia doméstica.
+Analizar la evolución de los casos nuevos a lo largo de los años.
+
+#### Requerimientos de Datos:
+Definición de un subconjunto de datos a partir del existente, ordenado cronológicamente por mes y año de ingreso de los casos.
+
+
+#### Análisis
+
+```{r hipotesis2, echo=FALSE}
+violencia_domestica_hip2 <- datos_violencia %>%
+  mutate(
+    Fecha = as.Date(paste(Anno, Mes, "01", sep = "-")),
+    NombreMes = factor(NombreMes, 
+                       levels = meses,
+                       ordered = TRUE)
+  )
+
+violencia_domestica_hip2$NombreMes[is.na(violencia_domestica_hip2$NombreMes) | violencia_domestica_hip2$NombreMes == "N/A"] <- "Febrero"
+```
+
+Este gráfico muestra un conteo mensual desde el año 2015 al 2025 con el total de nuevos casos de violencia
+Es importante destacar que los datos proporcionados del 2025 llegan solamente del mes de Enero
+
+```{r, echo=FALSE, fig.width=12, fig.height=8}
+ggplot(violencia_domestica_hip2, aes(x = NombreMes, y = Entrados, fill = factor(Anno))) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Casos Nuevos de Violencia Doméstica por Mes y Año",
+    x = "Mes",
+    y = "Casos Nuevos",
+    fill = "Año"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+---
+
+En este gráfico podemos ver el promedio mensual de nuevos casos por cada año.
+Encontramos que el 2015 y 2016 sobresalen del promedio de los otros años
+
+```{r, echo=FALSE,fig.width=12, fig.height=8, warning=FALSE}
+violencia_domestica_hip2 %>%
+  group_by(Anno, NombreMes) %>%
+  summarise(Entrados = mean(Entrados), .groups = 'drop') %>%
+  ggplot(aes(x = NombreMes, y = Entrados, group = Anno, color = factor(Anno))) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  labs(
+    title = "Promedio Mensual de Casos Nuevos por Año",
+    x = "Mes",
+    y = "Casos Nuevos",
+    color = "Año"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+---
+
+En este gráfico se contabilizan todos los casos nuevos de cada año 
+Se encuentra que desde el 2015 hasta 2019 hay una tendencia a la alza de casos y luego cae levemente
+
+```{r, echo=FALSE,fig.width=12, fig.height=8, warning=FALSE}
+violencia_domestica_hip2 %>%
+  group_by(Anno) %>%
+  summarise(TotalAnual = sum(Entrados)) %>%
+  ggplot(aes(x = Anno, y = TotalAnual)) +
+  geom_line(group = 1, color = "firebrick", linewidth = 1.2) +
+  geom_point(size = 3, color = "firebrick") +
+  labs(
+    title = "Evolución Anual de Casos Nuevos de Violencia Doméstica",
+    x = "Año",
+    y = "Total de Casos"
+  ) +
+  theme_minimal()
+```
+
+---
+
+Este gráfico muestra el total de casos nuevos separados por mes
+
+```{r, echo=FALSE,fig.width=12, fig.height=8, warning=FALSE}
+violencia_domestica_hip2 %>%
+  group_by(NombreMes) %>%
+  summarise(TotalCasos = sum(Entrados)) %>%
+  ggplot(aes(x = NombreMes, y = TotalCasos)) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Total de Casos Nuevos por Mes (Todos los Años Combinados)",
+    x = "Mes",
+    y = "Total de Casos"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+#### Conclusión
+Se confirma que en los últimos 10 años el mes con mas casos de denuncias por violencia son los de febrero en primer lugar, enero en segundo puesto y los demás meses se mantienen muy similares entre ellos.
+
+### Hipótesis 3
+
+#### Planteamiento
+Eficiencia en la Resolución de Casos
+
+##### Pregunta de Investigación: 
+¿Cuál es la eficiencia de los diferentes circuitos judiciales en la resolución de casos de violencia doméstica en el 2024? 
+
+#### Objetivos:
+Evaluar la eficiencia de los despachos judiciales en el cierre de casos de violencia doméstica.
+Identificar los circuitos judiciales con mayor y menor eficiencia en la resolución de casos.
+
+#### Requerimientos de Datos:
+Utilización del conjunto de datos existente para analizar la relación entre los casos ingresados y los casos terminados por circuito judicial.
+
+
+#### Análisis
+
+Como nos lo hemos planteado queremos analizar unicamente el año 2024 es por eso que iniciamos filtrando estos datos para obtener solo lo requerido.
+
+
+```{r hipotesis3, echo=FALSE}
+datos_violencia_hip_3 <- datos_violencia %>% filter(Anno == 2024)
+```
+
+Para poder determinar la eficiencia de cada circuito hemos definido las siguientes formulas a partir de la siguientes variables:
+
+1. `CirculanteInicial`
+2. `Entrados`
+3. `Terminasdos`
+4. `TerminadosXImcompetencia`
+
+##### Primer Formula
+
+Cuantos casos fueron resueltos comparados al total de trabajo (circulantes + entrados), donde un valor alto indica mejor eficiencia en manejo de caso.
+
+```
+Eficiencia_Carga_Total = (Total_Terminados / Carga_Total) * 100
+```
+
+##### Segunda Formula
+
+ Que tanto manejan la cantidad de casos, mejor porcentaje indica mejor forma de manejar casos pendientes
+```
+Tasa_Resolucion_Pendientes = (Total_Terminados / Total_Circulante_Inicial) * 100
+```
+
+
+Lo primero que haremos es sumarizar los datos
+
+```{r, echo=FALSE, include = FALSE}
+dv_eficiencia <- datos_violencia_hip_3 %>%
+  group_by(NombreCircuito) %>%
+  summarise(
+    Total_Circulante_Inicial = sum(CirculanteInicial),
+    Total_Entrados = sum(Entrados),
+    Total_Terminados = sum(Terminasdos) + sum(TerminadosXImcompetencia),
+    Carga_Total = Total_Circulante_Inicial + Total_Entrados,
+    # Diferentes métricas de eficiencia
+    # cuantos casos fueron resueltos comparados al total de trabajo (circulantes + entrados), valor alto indica mejor eficiencia en manejo de caso
+    Eficiencia_Carga_Total = (Total_Terminados / Carga_Total) * 100, 
+    # que tanto manejan el backlog, mejor porcentaje indica mejor forma de manejar casos pendientes
+    Tasa_Resolucion_Pendientes = (Total_Terminados / Total_Circulante_Inicial) * 100
+  ) %>%
+  mutate(
+    across(ends_with("_Total") | starts_with("Tasa"), round, 2),
+    Circulante_Final = Total_Circulante_Inicial + Total_Entrados - Total_Terminados,
+    Reduccion_Pendientes = ((Total_Circulante_Inicial - Circulante_Final) / Total_Circulante_Inicial) * 100
+  ) %>%
+  arrange(desc(Eficiencia_Carga_Total))
+
+```
+
+
+Una vez que tenemos los datos sumarizados queremos convertir las columnas en filas, esto para poder organizar los datos.
+
+```{r, echo=FALSE, include = FALSE}
+dv_eficiencia_long <- dv_eficiencia %>%
+  select(NombreCircuito, Eficiencia_Carga_Total, Tasa_Resolucion_Pendientes) %>%
+  tidyr::pivot_longer(
+    cols = c(Eficiencia_Carga_Total, Tasa_Resolucion_Pendientes),
+    names_to = "Tipo_Eficiencia",
+    values_to = "Porcentaje"
+  )
+
+```
+
+y obtener el siguiente grafico:
+
+```{r, echo=FALSE, fig.width=12, fig.height=12}
+ggplot(dv_eficiencia_long, aes(x = reorder(NombreCircuito, Porcentaje), y = Porcentaje, fill = Tipo_Eficiencia)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  coord_flip() +
+  labs(
+    title = "Métricas de Eficiencia por Circuito Judicial (2024)",
+    x = "Circuito Judicial",
+    y = "Porcentaje",
+    fill = "Tipo de Eficiencia"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 8),
+    legend.position = "bottom",
+    legend.title = element_text(size = 10)
+  ) +
+  scale_fill_brewer(palette = "Set2",
+    labels = c(
+      "Eficiencia_Carga_Total" = "Eficiencia sobre Carga Total",
+      "Tasa_Resolucion_Pendientes" = "Tasa de Resolución de Pendientes"
+    ))
+
+```
+
+
+#### Conclusión
+A partir de este diagrama de barras podemos ver que el `II CIRCUITO JUDICIAL DE SAN JOSE (GOICOECHEA)`, encabeza y se corona como el circuito mas eficiente a la hora de cerrar casos por violencia domestica.
+
+Pero cual es nuestro top 3 de los mejores así como nuestro top 3 de los peores ?
+
+```{r, echo=FALSE, include = FALSE}
+top_circuitos <- dv_eficiencia %>% select(NombreCircuito, Eficiencia_Carga_Total, Tasa_Resolucion_Pendientes, Reduccion_Pendientes) %>% 
+  slice_max(Eficiencia_Carga_Total, n = 3)
+
+bottom_circuitos <- dv_eficiencia %>% select(NombreCircuito, Eficiencia_Carga_Total, Tasa_Resolucion_Pendientes, Reduccion_Pendientes) %>%
+  slice_min(Eficiencia_Carga_Total, n = 3)
+```
+
+#### Circuitos más eficientes:
+
+```{r, echo=FALSE}
+kable(top_circuitos) %>% kable_styling() %>%
+  column_spec(1, width = "2.5cm")
+```
+
+#### Circuitos menos eficientes:
+
+```{r, echo=FALSE}
+kable(bottom_circuitos) %>% kable_styling()  %>%
+  column_spec(1, width = "2.5cm")
+
+```
+## Clustering
+
+Veamos los datos bajo la lupa de un modelo no supervisado (clustering) para entender un poco mas los datos, primero lo queremos ver como un todo utilizando solo las variables nûmericas (no constantes).
+
+```{r, echo=FALSE, include = FALSE}
+df <- scale(variables_numericas)
+head(df)
+```
+
+Cuantos clusters deberiamos tener?
+
+```{r, echo=FALSE, fig.width=12, fig.height=8}
+fviz_nbclust(df, kmeans, method = "silhouette")
+```
+
+Según el anterior diagrama deberian ser 2, así que una vez ejecutado nuestro codigo este es el resultado:
+
+```{r, echo=FALSE, fig.width=12, fig.height=8}
+k2 <- kmeans(df, centers = 2, nstart = 25)
+fviz_cluster(k2, data = df)
+```
+
+Del siguiente gráfico podemos interpretar lo siguiente: 
+
+* Los datos se agrupan naturalmente en dos categorías distintas
+* El cluster 1 (rojo) muestra mayor variabilidad y dispersión en ambas dimensiones
+* El cluster 2 (turquesa) es más homogéneo y compacto
+* La dimensión 1 (eje X) explica aproximadamente el 56.4% de la varianza en los datos
+* La dimensión 2 (eje Y) explica aproximadamente el 21.1% de la varianza
+
+## Series Temporales (ARIMA)
+
+Dado a que nuestro Conjunto de datos cuenta con meses y años quisimos utilizar un modelo de forcasting de Series temporales llamado ARIMA (Autoregressive Integrated Moving Average) o Medida Movil Integrada Autorregresiva para intentar predecir como se comportará la violencia domestica en nuestro país.
+
+```{r, echo=FALSE, include = FALSE, warning=FALSE}
+datos_ts <- datos_violencia %>%
+  group_by(Anno, Mes) %>%
+  summarise(
+    Entrados = sum(CirculanteInicial) + sum(Entrados),
+    Terminados = sum(Terminasdos)
+  ) %>%
+  arrange(Anno, Mes)
+
+ts_entrados <- ts(datos_ts$Entrados, frequency = 12)
+descomposicion <- decompose(ts_entrados)
+
+tiempo <- seq_along(ts_entrados)
+df_descomposicion <- data.frame(
+  tiempo = tiempo,
+  observado = as.numeric(descomposicion$x),
+  tendencia = as.numeric(descomposicion$trend),
+  estacional = as.numeric(descomposicion$seasonal),
+  aleatorio = as.numeric(descomposicion$random)
+) %>%
+  tidyr::pivot_longer(cols = -tiempo, names_to = "componente", values_to = "valor")
+
+```
+
+```{r,warning=FALSE, echo=FALSE, fig.width=12, fig.height=12}
+ggplot(df_descomposicion, aes(x = tiempo, y = valor)) +
+  geom_line() +
+  facet_wrap(~componente, scales = "free_y", ncol = 1) +
+  labs(
+    title = "Descomposición de Serie Temporal - Casos de Violencia Doméstica",
+    x = "Tiempo",
+    y = "Valor"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14),
+    strip.text = element_text(size = 10)
+  )
+
+```
+
+Una breve explicación de lo que se observa:
+
+Aleatorio (primer gráfico): Representa la variación irregular o residual que queda después de extraer los componentes de tendencia y estacionalidad. Estos son eventos impredecibles que afectan temporalmente los datos pero no forman parte de ningún patrón sistemático. En este caso, se observan fluctuaciones considerables que oscilan entre aproximadamente +2,000 y -2,000.
+
+Estacional (segundo gráfico): Muestra patrones cíclicos que se repiten a intervalos regulares. El patrón estacional es muy marcado y consistente, con picos pronunciados que se repiten aproximadamente cada 10-12 períodos de tiempo, sugiriendo una variación cíclica (posiblemente mensual o trimestral) en los reportes de violencia doméstica.
+
+Observado (tercer gráfico): Muestra los datos originales sin procesar. Se aprecia un incremento significativo en los casos durante los primeros 50 períodos de tiempo, alcanzando un máximo de aproximadamente 50,000 casos alrededor del período 75, seguido de un ligero descenso y estabilización alrededor de 45,000 casos.
+
+Tendencia (cuarto gráfico): Representa el movimiento a largo plazo de la serie. Muestra un claro aumento desde aproximadamente 28,000 hasta 50,000 casos durante los primeros 75 períodos, seguido de una ligera disminución y posterior estabilización con una leve tendencia al alza hacia el final.
+
+Que podemos esperar en nuestro país ?
+```{r, echo=FALSE, include = FALSE, warning=FALSE}
+modelo_arima <- auto.arima(ts_entrados)
+pronostico <- forecast(modelo_arima, h = 12)
+
+df_pronostico <- data.frame(
+  tiempo = c(tiempo, max(tiempo) + 1:12),
+  valor = c(ts_entrados, pronostico$mean),
+  tipo = c(rep("Histórico", length(ts_entrados)), rep("Pronóstico", 12)),
+  lower = c(rep(NA, length(ts_entrados)), pronostico$lower[,2]),
+  upper = c(rep(NA, length(ts_entrados)), pronostico$upper[,2])
+)
+
+```
+
+```{r,warning=FALSE, echo=FALSE, fig.width=12, fig.height=12}
+ggplot(df_pronostico, aes(x = tiempo, y = valor)) +
+  geom_line(aes(color = tipo)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "blue") +
+  labs(
+    title = "Pronóstico de Casos de Violencia Doméstica",
+    x = "Tiempo",
+    y = "Número de Casos",
+    color = "Tipo"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14),
+    legend.position = "bottom"
+  ) +
+  scale_color_manual(values = c("Histórico" = "black", "Pronóstico" = "blue"))
+
+```
+
+A notar del anterior gráfico es que a medida que avanza el tiempo, crece la incertidumbre, el intervalo de confianza se ensancha considerablemente.
+
+## Conclusión
+
+Nuestro análisis nos mostró que la violencia doméstica en Costa Rica es un problema complejo que tiene patrones claros según el lugar y el tiempo. Encontramos que las zonas del interior del país, especialmente San José, tienen la mayor cantidad de casos. También vimos que hay más denuncias en los primeros meses del año, lo que sugiere que se necesita más ayuda durante ese tiempo.
+Al estudiar la eficiencia, descubrimos que algunos circuitos judiciales manejan mejor los casos que otros, lo que nos indica que hay oportunidades para mejorar. Nuestras predicciones sugieren que el problema seguirá siendo un desafío importante en el futuro.
+
+Lo que encontramos puede ser útil para:
+
+* Las personas que toman decisiones en el gobierno
+* Los que trabajan en los tribunales
+* Los que dan servicios de ayuda social
+
+Esto les puede ayudar a:
+
+* Distribuir mejor los recursos
+* Crear mejores estrategias de prevención
+* Manejar mejor los casos
+* Prepararse para las necesidades futuras
+
+
+Este proyecto nos permitió aplicar lo aprendido en el curso y ver cómo las herramientas de minería de datos pueden ayudar a entender mejor problemas sociales importantes como la violencia doméstica.
